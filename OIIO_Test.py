@@ -2,6 +2,8 @@ import oiio
 from oiio import ImageInput, ImageOutput
 from oiio import ImageBuf, ImageSpec, ImageBufAlgo
 import numpy as np
+import re
+import os
 from pprint import pprint
 
 filepath = ".\\testImages\\Overscan_Checkerboard.exr"
@@ -10,25 +12,27 @@ filepath = ".\\testImages\\BlackBorder_Checkerboard.exr"
 filepath = ".\\testImages\\2PX_BlackBorder_Checkerboard.exr"
 filepath = ".\\testImages\\BL_BlackBorder_Checkerboard.exr"
 #filepath = ".\\testImages\\OVFX_STmap_base_HD_1280x720.exr"
-filepath = ".\\testImages\\Invalid_Pixels.exr"
+#filepath = ".\\testImages\\Invalid_Pixels.exr"
+filepath = ".\\testImages\\Overscan_Checkerboard\\Overscan_Checkerboard.####.exr"
+#filepath = r'F:\Projects\Current\Auto_Tech_Checker\testImages\Overscan_Checkerboard\Overscan_Checkerboard.0001.exr'
 
-inp = ImageInput.open(filepath)
-spec = inp.spec()
-pixels = inp.read_image(0,3)
+#inp = ImageInput.open(filepath)
+#spec = inp.spec()
+#pixels = inp.read_image(0,3)
 #print(np.where(pixels.isnan))
 #print(np.where(pixels == np.inf))
 #print("The first pixel is", pixels[0][0])
-roi = spec.roi
-roi_full = spec.roi_full
-x = 0
-if roi.xbegin < 0:
-	x = -roi.xbegin
+#roi = spec.roi
+#roi_full = spec.roi_full
+#x = 0
+#if roi.xbegin < 0:
+#	x = -roi.xbegin
 
 #print(x)
 #print(inp.format_name())
 
 
-inp.close()
+#inp.close()
 
 def check_bbox(path):
 	result = {}
@@ -52,7 +56,7 @@ def check_bbox(path):
 		result["bbox"] = False
 		result["bbox_height"] = []
 		result["bbox_height"].append(False)
-		if xres > fwidth:
+		if xres > fwidth:	
 			result["bbox_height"].append("Bbox height is bigger than format")
 		else:
 			result["bbox_height"].append("Bbox height is smaller than format")
@@ -112,8 +116,7 @@ def average_horizontal_line(pixels,y,width,increment = 10):
 
 def check_edges(path,lines = 5):
 
-
-	inp = ImageInput.open(filepath)
+	inp = ImageInput.open(path)
 	spec = inp.spec()
 	fwidth = spec.full_width
 	fheight = spec.full_height
@@ -250,11 +253,61 @@ def check_invalid_pixels(path):
 		result["invalid_pixels"] = False
 	return(result)
 
+def check_all(path):
+	result = {}
+	result.update(check_edges(path))
+	result.update(check_channels(path))
+	result.update(check_bbox(path))
+	result.update(check_invalid_pixels(path))
+	return(result)
+
+def path_to_frames(path):
+	frames = {}
+
+	if "#" in path:
+		folder,file_name = os.path.split(path)
+		#re_pattern = r'{}'.format(file_name)
+		re_pattern = re.sub("#+", "([0-9]+)", file_name)
+		folder = os.path.abspath(folder)
+		for f in os.listdir(folder):
+			re_match = re.match(re_pattern,f)
+			if re_match:
+				frames[re_match[1]] = os.path.join(folder,f)
+				#print(os.path.join(folder,f))
+	return(frames)
+
+def check_file_sequence(path):
+	frames = path_to_frames(path)
+	result = {}
+	prev_frame_channels = False
+	for frame , frame_path in frames.items():
+		result[frame] = {}
+		frame_path = frame_path.replace("\\","\\\\")
+		frame_result = check_edges(frame_path)
+		if len(frame_result) > 1:
+			result[frame].update(frame_result)
+		frame_result = check_bbox(frame_path)
+		if len(frame_result) > 1:
+			result[frame].update(frame_result)
+		frame_result = check_invalid_pixels(frame_path)
+		if len(frame_result) > 1:
+			result[frame].update(frame_result)
+
+		frame_result = check_channels(frame_path)
+		if prev_frame_channels:
+			if frame_result != prev_frame_channels:
+				result[frame].update(frame_result)
+		else:
+			result[frame].update(frame_result)
+		prev_frame_channels = frame_result
 
 
 
 
-pprint(check_edges(filepath))
-pprint(check_channels(filepath))
-pprint(check_bbox(filepath))
-pprint(check_invalid_pixels(filepath))
+	result = {k: v for k, v in result.items() if v}
+	pprint(result)
+	return()
+
+
+ 
+check_file_sequence(filepath)
