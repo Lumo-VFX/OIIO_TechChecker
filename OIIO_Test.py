@@ -1,19 +1,20 @@
-import oiio
-from oiio import ImageInput, ImageOutput
-from oiio import ImageBuf, ImageSpec, ImageBufAlgo
+import OpenImageIO as oiio
+from OpenImageIO import ImageInput, ImageOutput
+from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
 import numpy as np
 import re
 import os
 from pprint import pprint
+from pathlib import Path
 
-filepath = ".\\testImages\\Overscan_Checkerboard.exr"
-filepath = ".\\testImages\\Underscan_Checkerboard.exr"
-filepath = ".\\testImages\\BlackBorder_Checkerboard.exr"
-filepath = ".\\testImages\\2PX_BlackBorder_Checkerboard.exr"
-filepath = ".\\testImages\\BL_BlackBorder_Checkerboard.exr"
+#filepath = ".\\testImages\\Overscan_Checkerboard.exr"
+#filepath = ".\\testImages\\BlackBorder_Checkerboard.exr"
+#filepath = ".\\testImages\\Underscan_Checkerboard.exr"
+#filepath = ".\\testImages\\2PX_BlackBorder_Checkerboard.exr"
+#filepath = ".\\testImages\\BL_BlackBorder_Checkerboard.exr"
 #filepath = ".\\testImages\\OVFX_STmap_base_HD_1280x720.exr"
 #filepath = ".\\testImages\\Invalid_Pixels.exr"
-filepath = ".\\testImages\\Overscan_Checkerboard\\Overscan_Checkerboard.####.exr"
+filepath = "./testImages/Overscan_Checkerboard/Overscan_Checkerboard.####.exr"
 #filepath = r'F:\Projects\Current\Auto_Tech_Checker\testImages\Overscan_Checkerboard\Overscan_Checkerboard.0001.exr'
 
 #inp = ImageInput.open(filepath)
@@ -33,6 +34,7 @@ filepath = ".\\testImages\\Overscan_Checkerboard\\Overscan_Checkerboard.####.exr
 
 
 #inp.close()
+filepath = Path(os.path.abspath(filepath))
 
 def check_bbox(path):
 	result = {}
@@ -115,7 +117,6 @@ def average_horizontal_line(pixels,y,width,increment = 10):
 	return(block)
 
 def check_edges(path,lines = 5):
-
 	inp = ImageInput.open(path)
 	spec = inp.spec()
 	fwidth = spec.full_width
@@ -264,7 +265,7 @@ def check_all(path):
 def path_to_frames(path):
 	frames = {}
 
-	if "#" in path:
+	if "#" in str(path):
 		folder,file_name = os.path.split(path)
 		#re_pattern = r'{}'.format(file_name)
 		re_pattern = re.sub("#+", "([0-9]+)", file_name)
@@ -281,6 +282,7 @@ def check_file_sequence(path):
 	result = {}
 	prev_frame_channels = False
 	for frame , frame_path in frames.items():
+		print("Now checking frame {}".format(frame))
 		result[frame] = {}
 		frame_path = frame_path.replace("\\","\\\\")
 		frame_result = check_edges(frame_path)
@@ -309,5 +311,6 @@ def check_file_sequence(path):
 	return()
 
 
- 
-check_file_sequence(filepath)
+ def run():
+	check_file_sequence(filepath)
+#print(filepath)
