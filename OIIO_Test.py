@@ -282,6 +282,7 @@ def check_file_sequence(path):
 	result = {}
 	prev_frame_channels = False
 	for frame , frame_path in frames.items():
+		print("Now checking frame {}".format(frame))
 		result[frame] = {}
 		frame_path = frame_path.replace("\\","\\\\")
 		frame_result = check_edges(frame_path)
@@ -310,6 +311,6 @@ def check_file_sequence(path):
 	return()
 
 
- 
-check_file_sequence(filepath)
+ def run():
+	check_file_sequence(filepath)
 #print(filepath)
