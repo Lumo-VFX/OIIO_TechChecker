@@ -15,6 +15,8 @@ from pathlib import Path
 #filepath = ".\\testImages\\OVFX_STmap_base_HD_1280x720.exr"
 #filepath = ".\\testImages\\Invalid_Pixels.exr"
 filepath = "./testImages/Overscan_Checkerboard/Overscan_Checkerboard.####.exr"
+filepath = "./testImages/Overscan_Checkerboard/Overscan_Checkerboard.%04d.exr"
+filepath = "./testImages/Overscan_Checkerboard/Overscan_Checkerboard.0001.exr"
 #filepath = r'F:\Projects\Current\Auto_Tech_Checker\testImages\Overscan_Checkerboard\Overscan_Checkerboard.0001.exr'
 
 #inp = ImageInput.open(filepath)
@@ -255,6 +257,7 @@ def check_invalid_pixels(path):
 	return(result)
 
 def check_all(path):
+	path = str(path)
 	result = {}
 	result.update(check_edges(path))
 	result.update(check_channels(path))
@@ -265,26 +268,29 @@ def check_all(path):
 def path_to_frames(path):
 	frames = {}
 
-	if "#" in str(path):
+	if re.search(r"#+|%\d*d",str(path)):
 		folder,file_name = os.path.split(path)
-		#re_pattern = r'{}'.format(file_name)
-		re_pattern = re.sub("#+", "([0-9]+)", file_name)
+		re_pattern = re.sub(r"#+|%\d*d", "([0-9]+)", file_name)
 		folder = os.path.abspath(folder)
 		for f in os.listdir(folder):
 			re_match = re.match(re_pattern,f)
 			if re_match:
 				frames[re_match[1]] = os.path.join(folder,f)
 				#print(os.path.join(folder,f))
+	else:
+		frames['0001'] = str(path)
 	return(frames)
 
 def check_file_sequence(path):
 	frames = path_to_frames(path)
 	result = {}
 	prev_frame_channels = False
-	for frame , frame_path in frames.items():
+	frame_list = list(frames.keys())
+	frame_list.sort()
+	for frame in frame_list:
 		print("Now checking frame {}".format(frame))
 		result[frame] = {}
-		frame_path = frame_path.replace("\\","\\\\")
+		frame_path = frames[frame]
 		frame_result = check_edges(frame_path)
 		if len(frame_result) > 1:
 			result[frame].update(frame_result)
@@ -307,10 +313,15 @@ def check_file_sequence(path):
 
 
 	result = {k: v for k, v in result.items() if v}
-	pprint(result)
-	return()
+	return(result)
 
 
- def run():
-	check_file_sequence(filepath)
-#print(filepath)
+def run():
+	pprint(check_file_sequence(filepath))
+	pprint(check_all(filepath))
+	print(filepath)
+	print(os.path.isfile(filepath))
+	print(os.path.isdir(filepath))
+			
+if __name__ == "__main__":
+	run()
